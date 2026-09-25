@@ -19,7 +19,9 @@ static markdownToHtml(markdownPath, htmlPath, addIndex) {
 	}
 	text = removeWhitespace(text)
 
-	new File(htmlPath).text = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><style>${getStyles()}</style><title>Help</title></head><body>${text}</body></html>"
+	def outFile = new File(htmlPath)
+	outFile.parentFile?.mkdirs()
+	outFile.text = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\"><style>${getStyles()}</style><title>Help</title></head><body>${text}</body></html>"
 }
 
 

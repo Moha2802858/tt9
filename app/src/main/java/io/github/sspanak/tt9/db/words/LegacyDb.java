@@ -24,7 +24,7 @@ public class LegacyDb extends SQLiteOpenHelper {
 
 		new Thread(() -> {
 			try (SQLiteDatabase db = getWritableDatabase()) {
-				db.compileStatement("DROP TABLE " + TABLE_NAME).execute();
+				db.compileStatement("DROP TABLE IF EXISTS " + TABLE_NAME).execute();
 				Logger.d(LOG_TAG, "SQL Words cleaned successfully.");
 			} catch (Exception e) {
 				Logger.d(LOG_TAG, "Assuming no words, because of query error. " + e.getMessage());

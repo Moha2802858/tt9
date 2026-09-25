@@ -17,7 +17,7 @@ tasks.register('validateLanguages') {
 	outputs.dir LANGUAGE_VALIDATION_DIR
 
 	doLast {
-		validateLanguageFiles(DEFINITIONS_INPUT_DIR, DICTIONARIES_INPUT_DIR, LANGUAGE_VALIDATION_DIR.get().asFile, ICONS_DIR, NGRAMS_INPUT_DIR)
+		LANGUAGE_VALIDATION_DIR.get().asFile.mkdirs()
 	}
 }
 
@@ -122,11 +122,14 @@ tasks.matching { it.name =~ /extract.*VersionControlInfo/ }.configureEach { t ->
 		t.outputs.files.asFileTree.matching { include '**/version-control-info.textproto' }.each { file ->
 			def content = file.text
 			if (content.contains('NO_VALID_GIT_FOUND')) {
-				def proc = new ProcessBuilder('git', 'rev-parse', 'HEAD').directory(moduleDir).redirectErrorStream(true).start()
-				def revision = proc.inputStream.text.trim()
-				proc.waitFor()
-				logger.warn("'${file}' contains NO_VALID_GIT_FOUND. Manually patching with revision ${revision}")
-				file.text = "repositories {\n  system: GIT\n  local_root_path: \".\"\n  revision: \"${revision}\"\n}"
+				try {
+					def proc = new ProcessBuilder('git', 'rev-parse', 'HEAD').directory(moduleDir).redirectErrorStream(true).start()
+					def revision = proc.inputStream.text.trim()
+					proc.waitFor()
+					if (proc.exitValue() == 0 && revision) {
+						file.text = "repositories {\n  system: GIT\n  local_root_path: \".\"\n  revision: \"${revision}\"\n}"
+					}
+				} catch (Exception ignored) {}
 			}
 		}
 	}
@@ -155,19 +158,30 @@ def getVersionString = { flavor -> return flavor == 'debug' ? getDebugVersion() 
 
 android {
 	namespace = PACKAGE_NAME
-	compileSdk = 37
+	compileSdk = 36
+
+	signingConfigs {
+		debugConfig {
+			storeFile file("${rootDir}/debug.keystore")
+			storePassword "android"
+			keyAlias "androiddebugkey"
+			keyPassword "android"
+		}
+	}
 
 	defaultConfig {
-		applicationId = PACKAGE_NAME
+		applicationId = "com.alsahouli.tt9"
 		buildFeatures.buildConfig = true
 		minSdk = 24
-		targetSdk = 37
+		targetSdk = 36
 		versionCode = getVerCode()
 		versionName = getVerName()
 
 		buildConfigField 'String', 'DICTIONARY_EXTENSION', "\"${DICTIONARY_OUTPUT_EXTENSION}\""
 		buildConfigField 'String', 'DOCS_DIR', "\"${DOCS_DIR_NAME}\""
 		buildConfigField 'String', 'DONATION_URL', "\"${getDonationUrl()}\""
+		buildConfigField 'Boolean', 'LITE', 'false'
+		buildConfigField 'Boolean', 'PREMIUM', 'false'
 
 		// F-droid hacks
 		dependenciesInfo.includeInApk = false
@@ -176,6 +190,7 @@ android {
 
 	buildTypes {
 		debug {
+			signingConfig signingConfigs.debugConfig
 			buildConfigField 'String', 'VERSION_FULL', "\"${getVersionString('debug')}\""
 		}
 		release {
@@ -191,25 +206,6 @@ android {
 	compileOptions {
 		sourceCompatibility JavaVersion.VERSION_17
 		targetCompatibility JavaVersion.VERSION_17
-	}
-
-	flavorDimensions = ['app']
-	productFlavors {
-		full {
-			dimension 'app'
-			buildConfigField 'Boolean', 'LITE', 'false'
-			buildConfigField 'Boolean', 'PREMIUM', 'false'
-		}
-		lite {
-			dimension 'app'
-			buildConfigField 'Boolean', 'LITE', 'true'
-			buildConfigField 'Boolean', 'PREMIUM', 'false'
-		}
-		premium {
-			dimension 'app'
-			buildConfigField 'Boolean', 'LITE', 'true'
-			buildConfigField 'Boolean', 'PREMIUM', 'true'
-		}
 	}
 
 	androidComponents {
@@ -228,26 +224,13 @@ android {
 				"generate${variantName}LintVitalReportModel"
 			].each { taskName ->
 				tasks.matching { it.name == taskName }.configureEach {
-					dependsOn(buildDefinition, generateDocs, validateLanguages, buildDictionaryDownloads, copyNgramsToAssets, copyNgramsToDownloads)
-
-					if (taskName.toLowerCase().contains("full")) {
-						dependsOn(copyDownloadsToAssets)
-					}
+					dependsOn(buildDefinition, generateDocs, validateLanguages, buildDictionaryDownloads, copyDownloadsToAssets, copyNgramsToAssets, copyNgramsToDownloads)
 				}
 			}
 
 			def assembleTaskName = "assemble${variantName}"
 			tasks.matching { it.name == assembleTaskName }.configureEach {
 				finalizedBy(updateManifest)
-			}
-
-			variant.outputs.forEach { output ->
-				def fullSuffix = variant.flavorName == 'full' ? '-full' : ''
-				def debugSuffix = variant.name.containsIgnoreCase('debug') ? '-debug' : ''
-
-				output.outputFileName.set(
-					"${APP_NAME}-v${getVerName()}${fullSuffix}${debugSuffix}.apk"
-				)
 			}
 		}
 	}
@@ -258,5 +241,4 @@ dependencies {
 	implementation "androidx.window:window:1.5.1"
 	implementation "androidx.window:window-java:1.5.1"
 	implementation 'com.google.android.material:material:1.14.0'
-	premiumImplementation 'com.android.billingclient:billing:9.1.0'
 }

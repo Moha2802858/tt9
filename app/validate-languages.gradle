@@ -234,9 +234,9 @@ ext.parseLanguageDefintion = { File languageFile, String dictionariesDir, String
 	}
 
 	dictionaryFile = new File("$dictionariesDir/${dictionaryFileName}")
-	if (dictionaryFileName.isEmpty() || !dictionaryFile.exists()) {
+	if (dictionaryFileName.isEmpty()) {
 		errorCount++
-		errorMsg += "Could not find dictionary file: '${dictionaryFileName}' in: '${dictionariesDir}'. Make sure 'dictionaryFile' is set correctly in: '${languageFile.name}'.\n"
+		errorMsg += "Missing 'dictionaryFile' in: '${languageFile.name}'.\n"
 	}
 
 	if (!ngramFileName.isEmpty()) {

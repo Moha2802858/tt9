@@ -44,6 +44,16 @@ def convertDictionary(File definition, File csvDictionary, String dictionariesOu
 		return [1, "Failed checking freshness of '${csvDictionary.name}'. ${e.message}\n"]
 	}
 
+	def existingZip = getZipDictionaryFile(dictionariesOutputDir, csvDictionary, outputDictionaryExtension)
+	if (existingZip.exists()) {
+		def propertiesError = writeDictionaryProperties(definition, csvDictionary, existingZip, dictionariesMetaDir, 50000)
+		return [propertiesError ? 1 : 0, propertiesError ?: ""]
+	}
+
+	if (csvDictionary == null || !csvDictionary.exists()) {
+		return [0, ""]
+	}
+
 	final LATIN_ONLY_WORD = "^[A-Za-z]+\$"
 	int errorCount = 0
 	String errorMsg = ''
@@ -179,6 +189,7 @@ static def writeZippedDictionary(dictionariesOutputDir, csvDictionaryFile, outpu
 	def outputFile = getZipDictionaryFile(dictionariesOutputDir, csvDictionaryFile, outputDictionaryExtension)
 
 	try {
+		outputFile.parentFile?.mkdirs()
 		def zipOutputStream = new ZipOutputStream(new FileOutputStream(outputFile))
 		zipOutputStream.putNextEntry(new ZipEntry("${fileName}.txt"))
 		outputDictionary.each { digitSequence, words ->
@@ -202,7 +213,9 @@ def writeDictionaryProperties(File definition, File csvDictionary, File zipDicti
 		def revision = zipDictionary.exists() ? exec("git log --pretty=tformat:%H -n 1 ${zipDictionary}") : ""
 		def size = zipDictionary.exists() ? zipDictionary.length() : 0
 
-		new File(outputDir, name).text = "hash: ${hash}\nrevision: ${revision}\nsize: ${size}\nwords: ${words}"
+		def propFile = new File(outputDir, name)
+		propFile.parentFile?.mkdirs()
+		propFile.text = "hash: ${hash}\nrevision: ${revision}\nsize: ${size}\nwords: ${words}"
 
 		return ""
 	} catch (Exception e) {

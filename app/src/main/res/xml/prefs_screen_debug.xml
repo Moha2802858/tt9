@@ -2,16 +2,37 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	app:orderingFromXml="true">
+
+	<PreferenceCategory
+		app:title="معلومات مطور التطبيق"
+		app:singleLineTitle="true">
+
+		<Preference
+			app:key="pref_dev_name"
+			app:title="مطور التطبيق"
+			app:summary="المهندس محمد السحولي" />
+
+		<Preference
+			app:key="pref_dev_phone"
+			app:title="رقم الهاتف"
+			app:summary="775581855">
+			<intent
+				android:action="android.intent.action.DIAL"
+				android:data="tel:775581855" />
+		</Preference>
+
+	</PreferenceCategory>
+
 	<Preference
 		app:key="pref_device_info"
-		app:title="Device Info" />
+		app:title="معلومات الجهاز (Device Info)" />
 
 	<Preference
 		app:key="screen_test_input"
-		app:title="Test Input">
+		app:title="اختبار الإدخال (Test Input)">
 		<intent
 			android:action="android.intent.action.VIEW"
-			android:targetPackage="io.github.sspanak.tt9"
+			android:targetPackage="com.alsahouli.tt9"
 			android:targetClass="io.github.sspanak.tt9.preferences.screens.debug.TestInputActivity" />
 	</Preference>
 
@@ -20,32 +41,32 @@
 		android:key="pref_slow_queries"
 		android:title="@string/pref_category_usage_stats" />
 
-	<PreferenceCategory app:title="Hacks" app:singleLineTitle="true">
+	<PreferenceCategory app:title="خيارات متقدمة" app:singleLineTitle="true">
 		<SwitchPreferenceCompat
 			app:key="pref_demo_mode"
-			app:title="Demo Mode" />
+			app:title="وضع العرض التجريبي (Demo Mode)" />
 
-		<io.github.sspanak.tt9.preferences.screens.debug.DropDownInputHandlingMode app:title="Keypad Handling Mode" />
+		<io.github.sspanak.tt9.preferences.screens.debug.DropDownInputHandlingMode app:title="وضع معالجة المفاتيح" />
 	</PreferenceCategory>
 
-	<PreferenceCategory app:title="Logging" app:singleLineTitle="true">
-		<io.github.sspanak.tt9.preferences.screens.debug.DropDownLogLevel app:title="Log Level" />
+	<PreferenceCategory app:title="سجلات التشغيل (Logging)" app:singleLineTitle="true">
+		<io.github.sspanak.tt9.preferences.screens.debug.DropDownLogLevel app:title="مستوى التسجيل (Log Level)" />
 
 		<SwitchPreferenceCompat
 			app:defaultValue="false"
 			app:key="pref_enable_system_logs"
-			app:title="System Logs" />
+			app:title="سجلات النظام (System Logs)" />
 
 		<Preference
 			app:key="pref_export_logcat"
-			app:title="Export Logs" />
+			app:title="تصدير السجلات (Export Logs)" />
 
 		<Preference
 			app:key="screen_logs"
-			app:title="Recent Log Messages...">
+			app:title="رسائل السجل الأخيرة...">
 			<intent
 				android:action="android.intent.action.VIEW"
-				android:targetPackage="io.github.sspanak.tt9"
+				android:targetPackage="com.alsahouli.tt9"
 				android:targetClass="io.github.sspanak.tt9.preferences.LogsActivity" />
 		</Preference>
 	</PreferenceCategory>

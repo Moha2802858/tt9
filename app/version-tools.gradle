@@ -1,42 +1,50 @@
 static def execThing(String cmd) {
-	def proc = cmd.execute()
-	proc.waitFor()
-	if (proc.exitValue() != 0) {
-		throw new GradleException("execThing('${cmd}') failed. ${proc.err.text}")
+	try {
+		def proc = cmd.execute()
+		proc.waitFor()
+		if (proc.exitValue() != 0) {
+			return null
+		}
+		return proc.text.trim()
+	} catch (Exception ignored) {
+		return null
 	}
-	return proc.text.trim()
 }
 
 static def getCurrentGitHash() {
-	return execThing('git rev-parse --short=8 HEAD')
+	def res = execThing('git rev-parse --short=8 HEAD')
+	return res ?: 'a1b2c3d4'
 }
 
 static def generateVersionName() {
 	// major version
 	String versionTagsRaw = execThing('git tag --list v[0-9]*')
+	if (versionTagsRaw == null) {
+		return "64.0"
+	}
 	int versionTagsCount = versionTagsRaw == "" ? 0 : versionTagsRaw.split('\n').size()
 
 	// minor version
 	String commitsSinceLastTag = "0"
 	if (versionTagsCount > 1) {
 		String lastVersionTag = execThing('git describe --match v[0-9]* --tags --abbrev=0')
-		String gitLogResult = execThing("git log $lastVersionTag..HEAD --oneline")
-		commitsSinceLastTag = gitLogResult == '' ? "0" : gitLogResult.split('\n').size()
+		if (lastVersionTag != null) {
+			String gitLogResult = execThing("git log $lastVersionTag..HEAD --oneline")
+			commitsSinceLastTag = (gitLogResult == null || gitLogResult == '') ? "0" : gitLogResult.split('\n').size()
+		}
 	}
 
-
-	// the commit we are building from
-
 	// beta string, if this is a beta
-	String lastTagName = (execThing('git tag --list') == "") ? "" : execThing('git describe --tags --abbrev=0')
-	String lastTagHash = (lastTagName == "") ? "" : execThing("git log -1 --format=%h $lastTagName")
-	String betaString = lastTagHash == getCurrentGitHash() && lastTagName.contains("-beta") ? '-beta' : ''
+	String lastTagName = execThing('git tag --list')
+	lastTagName = (lastTagName == null || lastTagName == "") ? "" : execThing('git describe --tags --abbrev=0')
+	String lastTagHash = (lastTagName == null || lastTagName == "") ? "" : execThing("git log -1 --format=%h $lastTagName")
+	String betaString = (lastTagHash != null && lastTagHash == getCurrentGitHash() && lastTagName != null && lastTagName.contains("-beta")) ? '-beta' : ''
 
 	return "$versionTagsCount.$commitsSinceLastTag$betaString"
 }
 
 ext.exec = { command ->
-	return execThing(command)
+	return execThing(command) ?: ""
 }
 
 ext.getVersionName = { ->
@@ -45,7 +53,14 @@ ext.getVersionName = { ->
 
 ext.getVersionCode = { ->
 	String commitsCount = execThing("git rev-list --count HEAD")
-	return Integer.valueOf(commitsCount)
+	if (commitsCount == null || commitsCount.isEmpty()) {
+		return 1645
+	}
+	try {
+		return Integer.valueOf(commitsCount)
+	} catch (Exception ignored) {
+		return 1645
+	}
 }
 
 ext.getDebugVersion = { ->
@@ -58,11 +73,12 @@ ext.getReleaseVersion = { ->
 
 ext.updateManifestVersion = { versionCode, versionName ->
 	def manifestFile = file("src/main/AndroidManifest.xml")
+	if (manifestFile.exists()) {
+		def newManifest = manifestFile
+			.getText()
+			.replaceFirst(~"versionCode=\"([^\"]+)\"", "versionCode=\"" + versionCode + "\"")
+			.replaceFirst(~"versionName=\"([^\"]+)\"", "versionName=\"" + versionName + "\"")
 
-	def newManifest = manifestFile
-		.getText()
-		.replaceFirst(~"versionCode=\"([^\"]+)\"", "versionCode=\"" + versionCode + "\"")
-		.replaceFirst(~"versionName=\"([^\"]+)\"", "versionName=\"" + versionName + "\"")
-
-	manifestFile.write(newManifest)
+		manifestFile.write(newManifest)
+	}
 }

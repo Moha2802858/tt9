@@ -1,5 +1,6 @@
 ext.mergeDefinitions = { String definitionsInputDir, String definitionsOutputPath ->
 	def merged = new File(definitionsOutputPath)
+	merged.parentFile?.mkdirs()
 	merged.delete()
 
 	boolean isFirst = true

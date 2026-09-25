@@ -1,0 +1,6 @@
+{
+  "name": "alsahoulitt9",
+  "description": "Smart predictive T9 keypad and keyboard with full Arabic and English typing support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
